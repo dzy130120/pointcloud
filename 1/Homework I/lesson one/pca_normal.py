@@ -35,7 +35,7 @@ def PCA(data, correlation=False, sort=True):
 
 
 def main():
-    # 指定点云路径
+    # # 指定点云路径
     # cat_index = 10 # 物体编号，范围是0-39，即对应数据集中40个物体
     # root_dir = '/Users/renqian/cloud_lesson/ModelNet40/ply_data_points' # 数据集路径
     # cat = os.listdir(root_dir)
@@ -52,7 +52,7 @@ def main():
 
     # 用PCA分析点云主方向
     w, v = PCA(points)
-    point_cloud_vector = v[:, 2] #点云主方向对应的向量
+    point_cloud_vector = v[:,0] #点云主方向对应的向量
     print('the main orientation of this pointcloud is: ', point_cloud_vector)
     # TODO: 此处只显示了点云，还没有显示PCA
     # o3d.visualization.draw_geometries([point_cloud_o3d])
@@ -62,7 +62,30 @@ def main():
     normals = []
     # 作业2
     # 屏蔽开始
-
+    points_np = np.array(points)
+    for i in range(points_np.shape[0]):
+        [k, idx, _] = pcd_tree.search_radius_vector_3d(points_np[i,:], 0.5)
+        point_neighbors = points_np[idx[:], :]
+        point_neighbors = np.unique(point_neighbors, axis=0)
+        neighbor_num = 6
+        while(point_neighbors.shape[0]<6):
+            [k, idx, _] = pcd_tree.search_knn_vector_3d(points_np[i, :], neighbor_num)
+            neighbor_num = neighbor_num + 1
+            point_neighbors = points_np[idx[:], :]
+            point_neighbors = np.unique(point_neighbors, axis=0)
+        # print(point_neighbors)
+        mean = np.mean(point_neighbors, axis=0)
+        mean = mean.reshape(1, 3)
+        X_ba = point_neighbors - mean
+        H = np.dot(X_ba.reshape(3, X_ba.shape[0]), X_ba)
+        eigenvalues, eigenvectors = np.linalg.eig(H)
+        sort = eigenvalues.argsort()[::-1]
+        eigenvalues = eigenvalues[sort]
+        eigenvectors = eigenvectors[:, sort]
+        normals.append(eigenvectors[:,2])
+        print(i/points_np.shape[0])
+        # print(normals)
+        # print(i,k,eigenvectors[:,0])
     # 由于最近邻搜索是第二章的内容，所以此处允许直接调用open3d中的函数
 
     # 屏蔽结束
